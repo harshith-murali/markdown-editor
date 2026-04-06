@@ -1,36 +1,60 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# MD Editor 📝✨
 
-## Getting Started
+A beautiful, premium, and highly responsive web-based Markdown Editor built with **Next.js**. MD Editor lets you create, edit, save, and export Markdown documents entirely in the cloud with live compilation.
 
-First, run the development server:
+## ✨ Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- **Live Preview Compilation**: Type markdown on the left, watch it immediately parse into HTML on the right.
+- **Syntax Highlighting**: Code blocks are automatically formatted using `highlight.js` with sleek styling.
+- **Scroll Syncing**: Perfect simultaneous scrolling. Moving your cursor in the editor smoothly brings the preview pane to the same level!
+- **Dark & Light Mode**: Gorgeous visual toggle transitioning between dynamic custom CSS Themes.
+- **File Management & Cloud Storage**: 
+  - Manage multiple files organized in a collapsing Sidebar.
+  - Documents are safely permanently stored inside a remote **MongoDB** Database associated with your anonymous session ID!
+  - Explicit manual saving using the "Save" function.
+- **Export directly to `.md`**: Instantly download your note straight to your desktop.
+
+## 🛠️ Tech Stack
+
+- **Framework**: [Next.js](https://nextjs.org/) (App Router)
+- **Styling**: Vanilla CSS with customized variable tokens (No Tailwind bloat!)
+- **Markdown Parsing**: `marked` combined with `marked-highlight` and `highlight.js`
+- **Database**: [MongoDB](https://www.mongodb.com/) controlled via `mongoose` 
+- **Icons**: `lucide-react`
+
+## 🚀 Local Development
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/harshith-murali/markdown-editor.git
+   cd markdown-editor
+   ```
+
+2. **Install the dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Configure Environment Variables**
+   For local development, you must create a `.env.local` file at the root of the project to authenticate with MongoDB:
+   
+   \`\`\`env
+   # .env.local
+   MONGODB_URI=mongodb+srv://<user>:<password>@cluster0.xxxxx.mongodb.net/markdown-editor?retryWrites=true&w=majority
+   \`\`\`
+
+4. **Start the development server**
+   ```bash
+   npm run dev
+   ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 🟢 Deployment
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The easiest way to deploy this application is via **Vercel**. 
 
-## Learn More
+**CRITICAL DEPLOYMENT STEP:** 
+Once your Vercel Project is linked to your Github Repository, you MUST navigate to **Settings > Environment Variables** and inject your unique `MONGODB_URI`. Vercel overlooks local `.env` files for security reasons, so failure to populate this Variable will result in an immediate `500 Server Error` from Next.js failing to hydrate the database! 
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Additionally, ensure your MongoDB Atlas project has **Network Access** explicitly set to `0.0.0.0/0` (Allow Anywhere) to accommodate serverless functions triggering from changing IP ranges.
