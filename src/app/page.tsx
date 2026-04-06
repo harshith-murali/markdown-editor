@@ -15,18 +15,6 @@ This is a **premium**, highly responsive Markdown editor built with Next.js and 
 - **Live Preview:** See your changes instantly.
 - **Scroll Sync:** Scrolling the editor updates the preview position.
 - **Syntax Highlighting:** Code blocks look gorgeous!
-
-### Code Example
-\`\`\`javascript
-function calculatePremium(awesomeness) {
-  if (awesomeness > 100) {
-    return 'Maximum Wow Factor';
-  }
-  return 'Keep Coding!';
-}
-\`\`\`
-
-> *“Design is not just what it looks like and feels like. Design is how it works.”* — Steve Jobs
 `;
 
 export default function Home() {
@@ -35,13 +23,11 @@ export default function Home() {
   const [scrollPercentage, setScrollPercentage] = useState(0);
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [isLoaded, setIsLoaded] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
   const [sessionId, setSessionId] = useState<string>('');
-  
-  // Track debounce timer for saving
-  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    // 1. Initialize Theme and Session ID from localStorage
     const savedTheme = localStorage.getItem('md-editor-theme') as 'light' | 'dark';
     if (savedTheme) {
       setTheme(savedTheme);
@@ -55,7 +41,6 @@ export default function Home() {
     }
     setSessionId(currentSessionId);
 
-    // 2. Fetch documents from Database API
     const fetchDocuments = async () => {
       try {
         const response = await fetch(`/api/documents?sessionId=${currentSessionId}`);
@@ -66,12 +51,14 @@ export default function Home() {
             const savedActiveId = localStorage.getItem('md-editor-active-id');
             setActiveFileId(savedActiveId && dbFiles.some((f: any) => f.id === savedActiveId) ? savedActiveId : dbFiles[0].id);
           } else {
-            // First time ever opening, create a default doc API
             await createDefaultDocument(currentSessionId);
           }
+        } else {
+          setErrorMsg('Failed to connect to database. Did you set MONGODB_URI in Vercel?');
         }
       } catch (err) {
         console.error('Error fetching documents from remote database', err);
+        setErrorMsg('Network error while connecting to the database server.');
       } finally {
         setIsLoaded(true);
       }
@@ -91,13 +78,15 @@ export default function Home() {
         const newDoc = await res.json();
         setFiles([newDoc]);
         setActiveFileId(newDoc.id);
+      } else {
+        setErrorMsg('Failed to create default document in Database');
       }
     } catch (e) {
       console.error(e);
+      setErrorMsg('Network error creating document. Check MONGODB_URI/Network Access.');
     }
   }
 
-  // Effect to sync simple local storage refs
   useEffect(() => {
     if (!isLoaded) return;
     localStorage.setItem('md-editor-active-id', activeFileId);
@@ -109,27 +98,25 @@ export default function Home() {
     }
   }, [theme, activeFileId, isLoaded]);
 
-  // Debounced Save API Request
-  const saveToDatabase = (id: string, title?: string, content?: string) => {
-    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+  const saveToDatabase = async (id: string, title?: string, content?: string) => {
+    const fileToSave = files.find(f => f.id === id);
+    if (!fileToSave) return;
     
-    saveTimeoutRef.current = setTimeout(async () => {
-      const fileToSave = files.find(f => f.id === id);
-      if (!fileToSave) return;
-      
-      const payloadTitle = title !== undefined ? title : fileToSave.title;
-      const payloadContent = content !== undefined ? content : fileToSave.content;
+    setIsSaving(true);
+    const payloadTitle = title !== undefined ? title : fileToSave.title;
+    const payloadContent = content !== undefined ? content : fileToSave.content;
 
-      try {
-        await fetch(`/api/documents/${id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title: payloadTitle, content: payloadContent })
-        });
-      } catch (e) {
-        console.error('Error saving document to db', e);
-      }
-    }, 1000); // Save to DB after 1s of inactivity
+    try {
+      await fetch(`/api/documents/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: payloadTitle, content: payloadContent })
+      });
+    } catch (e) {
+      console.error('Error saving document to db', e);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleEditorScroll = (scrollTop: number, scrollHeight: number, clientHeight: number) => {
@@ -180,15 +167,23 @@ export default function Home() {
 
   const handleUpdateContent = (newContent: string) => {
     setFiles(files.map(f => f.id === activeFileId ? { ...f, content: newContent } : f));
-    saveToDatabase(activeFileId, undefined, newContent);
   };
 
   const handleUpdateTitle = (newTitle: string) => {
     setFiles(files.map(f => f.id === activeFileId ? { ...f, title: newTitle } : f));
-    saveToDatabase(activeFileId, newTitle, undefined);
   };
 
   if (!isLoaded) return <div style={{height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--background)', color: 'var(--foreground)'}}>Loading Workspace...</div>;
+
+  if (errorMsg) return (
+    <div style={{height: '100vh', display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center', justifyContent: 'center', background: 'var(--background)', color: '#ff5555', textAlign: 'center', padding: '2rem'}}>
+      <h2>Database Connection Error</h2>
+      <p>{errorMsg}</p>
+      <p style={{color: 'var(--foreground)', marginTop: '1rem', fontSize: '0.9rem', maxWidth: '600px'}}>
+        Ensure that you have added <strong>MONGODB_URI</strong> to your Vercel Environment Variables, and that your MongoDB cluster has <strong>Network Access</strong> set to allow connections from anywhere (0.0.0.0/0).
+      </p>
+    </div>
+  );
 
   const activeFile = files.find(f => f.id === activeFileId) || files[0];
   if (!activeFile) return null;
@@ -201,6 +196,8 @@ export default function Home() {
         theme={theme}
         onToggleTheme={handleToggleTheme}
         onTitleChange={handleUpdateTitle}
+        onSave={() => saveToDatabase(activeFileId)}
+        isSaving={isSaving}
       />
       <div className="main-wrapper">
         <Sidebar 

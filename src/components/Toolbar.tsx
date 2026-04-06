@@ -1,5 +1,5 @@
 import React from 'react';
-import { Download, FileText, Sun, Moon } from 'lucide-react';
+import { Download, FileText, Sun, Moon, Save } from 'lucide-react';
 import { exportToMarkdown } from '../utils/exportFile';
 
 interface ToolbarProps {
@@ -8,6 +8,8 @@ interface ToolbarProps {
   onToggleTheme: () => void;
   title: string;
   onTitleChange: (newTitle: string) => void;
+  onSave: () => void;
+  isSaving: boolean;
 }
 
 export default function Toolbar({ 
@@ -15,7 +17,9 @@ export default function Toolbar({
   theme, 
   onToggleTheme, 
   title, 
-  onTitleChange 
+  onTitleChange,
+  onSave,
+  isSaving
 }: ToolbarProps) {
   const handleExport = () => {
     exportToMarkdown(content, `${title || 'document'}.md`);
@@ -41,6 +45,10 @@ export default function Toolbar({
       <div className="toolbar-actions">
         <button className="btn-icon" onClick={onToggleTheme} title="Toggle Theme">
           {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
+        </button>
+        <button className="btn-export" onClick={onSave} disabled={isSaving} style={{ opacity: isSaving ? 0.7 : 1 }}>
+          <Save size={18} />
+          {isSaving ? 'Saving...' : 'Save'}
         </button>
         <button className="btn-export" onClick={handleExport} title="Export to Markdown">
           <Download size={18} />
